@@ -1,0 +1,12 @@
+# git init
+# git remote add origin https://github.com/beleil1/firstproject.git
+# git add .
+
+ # git config --global user.email "aminranjbar19462@gmail.com"
+# git commit -m "init"
+#   git branch -M main
+# git push --set-upstream origin main
+# git status
+# git add . hardafe baraye push
+# git commit -m "sample"
+# git push

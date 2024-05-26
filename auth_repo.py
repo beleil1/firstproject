@@ -19,4 +19,3 @@ class authentication:
             user_info = await authentication.find_user(username=token_info["iss"])
             return user_info
         return _inner
-    print(amin)
