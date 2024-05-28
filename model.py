@@ -6,7 +6,7 @@ class login_model(BaseModel):
     username: str
     password: str
 
-    @validator('password')
+    @field_validator('password')
     def validate_password(cls, value):
         min_length = 6
         require_upper = True
@@ -56,3 +56,9 @@ class register_model(login_model):
 
 class forget_password_model(login_model):
     confirm_password: str
+
+
+class FileResponse(BaseModel):
+    filename: str
+    content_type: str
+    minio_url: str
