@@ -1,4 +1,5 @@
-from pydantic import BaseModel, validator, ValidationError, field_validator
+from pydantic import BaseModel, validator, ValidationError, field_validator, Field
+from datetime import datetime
 import re
 
 
@@ -42,7 +43,15 @@ class login_model(BaseModel):
 
 
 class register_model(login_model):
+    fristname: str
+    lastname: str
+    phone_number: str
     email: str
+    date_created: datetime = None
+
+    @validator("date_created", pre=True, always=True)
+    def set_date_created(cls, v):
+        return v or datetime.utcnow()
 
     @field_validator('email')
     def check_email(cls, v):
@@ -51,6 +60,14 @@ class register_model(login_model):
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', v):
             raise ValueError("Invalid email address.")
         # Add more validation logic if needed
+        return v
+
+    @field_validator('phone_number')
+    def validate_phone_number(cls, v):
+        # الگوی شماره تلفن: بین 9 تا 15 رقم، به طور اختیاری با '+' در ابتدا
+        pattern = re.compile(r'^\+?1?\d{9,15}$')
+        if not pattern.match(v):
+            raise ValueError('Invalid phone number format')
         return v
 
 

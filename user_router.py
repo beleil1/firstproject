@@ -25,9 +25,9 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(authent
         file_type = imghdr.what(None, h=content)
         await file.seek(0)
 
-        if file_type not in ["jpeg", "png", "gif"]:
+        if file_type not in ["jpeg", "png"]:
             raise HTTPException(
-                status_code=400, detail="Only image files are allowed (jpeg, png, gif).")
+                status_code=400, detail="Only image files are allowed (jpeg, png).")
 
         minio_url = upload_file_to_minio(
             file.file, file.filename, file.content_type)
