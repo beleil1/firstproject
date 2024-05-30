@@ -46,7 +46,7 @@ class login_model(BaseModel):
 class register_model(login_model):
     firstname: str
     lastname: str
-    # phone_number: str
+    phone_number: str
     email: str
 
     @field_validator('email')
@@ -58,13 +58,13 @@ class register_model(login_model):
         # Add more validation logic if needed
         return v
 
-    # @field_validator('phone_number')
-    # def validate_phone_number(cls, v):
-    #     # الگوی شماره تلفن: بین 9 تا 15 رقم، به طور اختیاری با '+' در ابتدا
-    #     pattern = re.compile(r'^\+?1?\d{9,15}$')
-    #     if not pattern.match(v):
-    #         raise ValueError('Invalid phone number format')
-    #     return v
+    @field_validator('phone_number')
+    def validate_phone_number(cls, v):
+        # الگوی شماره تلفن: بین 9 تا 15 رقم، به طور اختیاری با '+' در ابتدا
+        pattern = re.compile(r'^\+?1?\d{9,15}$')
+        if not pattern.match(v):
+            raise ValueError('Invalid phone number format')
+        return v
 
 
 class forget_password_model(login_model):
