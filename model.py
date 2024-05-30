@@ -48,11 +48,6 @@ class register_model(login_model):
     lastname: str
     phone_number: str
     email: str
-    date_created: datetime = None
-
-    @validator("date_created", pre=True, always=True)
-    def set_date_created(cls, v):
-        return v or datetime.utcnow()
 
     @field_validator('email')
     def check_email(cls, v):

@@ -50,7 +50,11 @@ async def register(register: register_model):
                 detail="این ایمیل قبلاً استفاده شده است. لطفاً از ایمیل دیگری استفاده کنید.")
 
         register.password = password_tools.encode_password(register.password)
-        connection.site_database.users.insert_one(dict(register))
+
+        user_data = register.dict()
+        user_data["registration_time"] = datetime.utcnow()
+
+        connection.site_database.users.insert_one(user_data)
         hidden = register.dict()
         hidden.pop("password")
         return hidden
