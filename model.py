@@ -1,6 +1,7 @@
 from pydantic import BaseModel, validator, ValidationError, field_validator, Field
 from datetime import datetime
 import re
+from typing import Optional
 
 
 class login_model(BaseModel):
@@ -79,3 +80,13 @@ class FileResponse(BaseModel):
     filename: str
     content_type: str
     minio_url: str
+
+
+class MessageModel(BaseModel):
+    ticket_id: str
+    receiver_id: Optional[str]
+    message_type: Optional[str]  # "text", "image", "video", etc.
+    content: Optional[str] = None
+    filename: Optional[str] = None
+    minio_url: Optional[str] = None
+    upload_time: datetime
