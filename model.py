@@ -44,7 +44,7 @@ class login_model(BaseModel):
 
 
 class register_model(login_model):
-    fristname: str
+    firstname: str
     lastname: str
     phone_number: str
     email: str
