@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from api.auth_router import router as auth_router
 from api.user_router import router as user_router
-from api.message_router import router as message_router
+from api.user_message import router as message_router
 
 
 app = FastAPI()
