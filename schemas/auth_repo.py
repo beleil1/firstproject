@@ -1,7 +1,7 @@
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends
-from utills import jwt_tools
-from mongo import connection
+from core.utills import jwt_tools
+from db.mongo import connection
 
 
 class authentication:

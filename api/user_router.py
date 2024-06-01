@@ -1,11 +1,9 @@
-from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, status
-from mongo import connection
-from utills import jwt_tools
-from auth_repo import authentication
-import os
+from fastapi import APIRouter, File, UploadFile, Depends, HTTPException
+from db.mongo import connection
+from schemas.auth_repo import authentication
 import imghdr
-from model import FileResponse
-from minio_setup import upload_file_to_minio
+from models.model import FileResponse
+from services.minio_setup import upload_file_to_minio
 from datetime import datetime
 
 

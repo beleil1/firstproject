@@ -1,11 +1,8 @@
 from passlib.context import CryptContext
-from jose import JWTError, jwt
-from mongo import connection
-from fastapi import FastAPI, Depends, HTTPException, status
-from pydantic import BaseModel
+from jose import jwt
+from fastapi import HTTPException, status
 from datetime import datetime, timedelta
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from mongo import connection
+from db.mongo import connection
 
 SECRET_KEY = "e696e8226097643b00dc04f8bfa899e5bbf42e46dfcdf387b2ffadddc6913e71"
 ALGORITHM = "HS256"

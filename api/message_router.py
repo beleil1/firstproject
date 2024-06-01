@@ -1,13 +1,10 @@
 
-from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, status
-from mongo import connection
-from utills import jwt_tools
-from auth_repo import authentication
-import os
-from model import MessageModel
-from minio_setup import upload_file_to_minio
+from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from db.mongo import connection
+from schemas.auth_repo import authentication
+from models.model import MessageModel
+from services.minio_setup import upload_file_to_minio
 from datetime import datetime
-from user_router import router
 from typing import Optional
 
 router = APIRouter(prefix="/messages", tags=["Messages"])

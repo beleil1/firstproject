@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from model import login_model, register_model, forget_password_model
-from mongo import connection
-from typing import Any, Dict
-from utills import password_tools, jwt_tools
-from datetime import datetime, timedelta
+from models.model import register_model, forget_password_model
+from db.mongo import connection
+from core.utills import password_tools, jwt_tools
+from datetime import datetime
 from fastapi.security import OAuth2PasswordRequestForm
-from auth_repo import authentication
-from pymongo.errors import DuplicateKeyError
+from schemas.auth_repo import authentication
 
 router = APIRouter(prefix='/authentication', tags=["Authentication api"])
 
