@@ -1,7 +1,7 @@
 from minio import Minio
 from minio.error import S3Error
 import secrets
-
+import io
 MINIO_ENDPOINT = "192.168.1.3:9000"
 MINIO_ACCESS_KEY = "fgFZEj6rF3Wd0l1N0vh7"
 MINIO_SECRET_KEY = "r48Fl7WJDT67sJeYbe3YrOkVre8QB1BUbWP2Qikk"
@@ -17,6 +17,8 @@ minio_client = Minio(
 
 def upload_file_to_minio(file_data, filename, content_type):
     try:
+        file_data = io.BytesIO(file_data)  # تبدیل bytes به io.BytesIO
+        file_stat = file_data.getbuffer().nbytes
         minio_client.put_object(
             bucket_name=MINIO_BUCKET_NAME,
             object_name=filename,

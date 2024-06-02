@@ -6,20 +6,51 @@ from schemas.auth_repo import authentication
 from db.mongo import connection
 from bson import ObjectId
 from services.minio_setup import minio_client, upload_file_to_minio
+import json
+from typing import List
+import secrets
+from services.pyclamd import scan_file_for_virus
+from bson.errors import InvalidId
 router = APIRouter(prefix='/ticket', tags=["user_Admin"])
 
 
 @router.post("/tickets/", response_model=Ticket)
-async def create_ticket(ticket: TicketCreate, current_user=Depends(authentication.authenticate_token())):
-    ticket_dict = ticket.dict()
-    ticket_dict["created_at"] = datetime.utcnow()
-    ticket_dict["updated_at"] = datetime.utcnow()
-    ticket_dict["status"] = "pending"
+async def create_ticket(
+    subject: str = Form(...),
+    messages: List[str] = Form(...),
+    file: UploadFile = File(None),
+    current_user=Depends(authentication.authenticate_token())
+):
+    ticket_dict = {
+        "subject": subject,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "status": "pending",
+        "messages": []
+    }
 
-    ticket_dict["messages"] = [
-        {"_id": ObjectId(), "content": msg.content, "timestamp": datetime.utcnow()}
-        for msg in ticket.messages
-    ]
+    if file:
+        file_type = file.filename.split(".")[-1].lower()
+        if file_type not in ["jpeg", "jpg", "png", "pdf"]:
+            raise HTTPException(
+                status_code=400, detail="Only image files (jpeg, jpg, png) and PDF files are allowed.")
+
+        if file is not None:
+            file_content = await file.read()
+        if file:
+            file_content = await file.read()
+        if scan_file_for_virus(file_content):
+            raise HTTPException(
+                status_code=400, detail="Uploaded file contains a virus.")
+
+        filename = f"{secrets.token_hex(16)}-{file.filename}"
+        file_url = upload_file_to_minio(
+            file_content, filename, file.content_type)
+        ticket_dict["file_url"] = file_url
+
+    for content in messages:
+        ticket_dict["messages"].append(
+            {"_id": ObjectId(), "content": content, "timestamp": datetime.utcnow()})
 
     new_ticket = await connection.site_database.tickets.insert_one(ticket_dict)
     created_ticket = await connection.site_database.tickets.find_one({"_id": new_ticket.inserted_id})
@@ -38,8 +69,13 @@ async def create_ticket(ticket: TicketCreate, current_user=Depends(authenticatio
 
 @router.patch("/tickets/{ticket_id}/accept", response_model=Ticket)
 async def accept_ticket(ticket_id: str, current_user=Depends(authentication.authenticate_token())):
+    try:
+        object_id = ObjectId(ticket_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid ticket ID")
+
     updated_ticket = await connection.site_database.tickets.find_one_and_update(
-        {"_id": ObjectId(ticket_id)},
+        {"_id": object_id},
         {"$set": {"status": "accepted", "updated_at": datetime.utcnow()}},
         return_document=True
     )
@@ -63,19 +99,21 @@ async def respond_to_ticket(
     file: UploadFile = File(None), current_user=Depends(authentication.authenticate_token())
 
 ):
+    try:
+        object_id = ObjectId(ticket_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid ticket ID")
+
     new_message = {"_id": ObjectId(), "content": content,
                    "timestamp": datetime.utcnow()}
 
     if file:
         file_content = await file.read()
-        # شما می‌توانید فایل را در پایگاه‌داده ذخیره کنید یا در دیسک ذخیره کنید و مسیر آن را در new_message قرار دهید
-        # این قسمت را بر اساس نیاز خود تغییر دهید
         new_message["file_name"] = file.filename
-        # در اینجا به عنوان مثال، محتوای فایل را در پیام ذخیره می‌کنیم
         new_message["file_content"] = file_content
 
     updated_ticket = await connection.site_database.tickets.find_one_and_update(
-        {"_id": ObjectId(ticket_id)},
+        {"_id": object_id},
         {"$push": {"messages": new_message}, "$set": {
             "updated_at": datetime.utcnow()}},
         return_document=True
