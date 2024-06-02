@@ -79,7 +79,7 @@ async def accept_ticket(ticket_id: str, current_user=Depends(authentication.auth
     updated_ticket = await connection.site_database.tickets.find_one_and_update(
         {"_id": object_id},
         {"$set": {"status": "accepted", "updated_at": datetime.utcnow(
-        ), "accepted": True}},  # تنظیم فیلد accepted به True
+        ), "accepted": True}},
         return_document=True
     )
 
@@ -108,7 +108,6 @@ async def respond_to_ticket(
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid ticket ID")
 
-    # بررسی وضعیت تیکت
     ticket = await connection.site_database.tickets.find_one({"_id": object_id})
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -117,8 +116,7 @@ async def respond_to_ticket(
         raise HTTPException(
             status_code=403, detail="Only accepted tickets can receive responses")
 
-    if content:  # بررسی مقدار content
-        # اگر محتوا وجود دارد، پیام ارسال شود
+    if content:
         message_dict = {
             "_id": ObjectId(),
             "content": content,
@@ -141,14 +139,12 @@ async def respond_to_ticket(
                 file_content, filename, file.content_type)
             message_dict["file_url"] = file_url
 
-        # اضافه کردن پیام به لیست پیام‌ها در دیتابیس
         await connection.site_database.tickets.update_one(
             {"_id": object_id},
             {"$push": {"messages": message_dict},
              "$set": {"updated_at": datetime.utcnow()}}
         )
 
-    # آپدیت وضعیت به "seen" اگر seen = True است
     if seen:
         await connection.site_database.tickets.update_one(
             {"_id": object_id},
