@@ -1,3 +1,4 @@
+from fastapi import status
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
 from datetime import datetime
 from pydantic import BaseModel
@@ -92,32 +93,32 @@ async def accept_ticket(ticket_id: str, current_user=Depends(authentication.auth
         raise HTTPException(status_code=404, detail="Ticket not found")
 
 
-@router.post("/tickets/{ticket_id}/response", response_model=Ticket)
+@router.post("/tickets/{ticket_id}/response", response_model=Ticket, status_code=status.HTTP_200_OK)
 async def respond_to_ticket(
     ticket_id: str,
-    content: str = Form(...),
-    file: UploadFile = File(None), current_user=Depends(authentication.authenticate_token())
-
+    seen: bool = False,  # اضافه کردن پارامتر seen
+    content: str = None,
+    file: UploadFile = File(None),
+    current_user=Depends(authentication.authenticate_token())
 ):
     try:
         object_id = ObjectId(ticket_id)
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid ticket ID")
 
-    new_message = {"_id": ObjectId(), "content": content,
-                   "timestamp": datetime.utcnow()}
+    # بررسی اینکه ادمین پیامی ارسال کرده یا نه
+    if content:
+        raise HTTPException(
+            status_code=403, detail="Only admin can send messages")
 
-    if file:
-        file_content = await file.read()
-        new_message["file_name"] = file.filename
-        new_message["file_content"] = file_content
-
-    updated_ticket = await connection.site_database.tickets.find_one_and_update(
+    # آپدیت وضعیت به "seen"
+    await connection.site_database.tickets.update_one(
         {"_id": object_id},
-        {"$push": {"messages": new_message}, "$set": {
-            "updated_at": datetime.utcnow()}},
-        return_document=True
+        {"$set": {"status": "seen", "updated_at": datetime.utcnow()}}
     )
+
+    # بازیابی اطلاعات تیکت برای ارسال به عنوان پاسخ
+    updated_ticket = await connection.site_database.tickets.find_one({"_id": object_id})
 
     if updated_ticket:
         updated_ticket["id"] = str(updated_ticket["_id"])
