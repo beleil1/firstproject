@@ -48,8 +48,13 @@ async def register(register: register_model):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="این ایمیل قبلاً استفاده شده است. لطفاً از ایمیل دیگری استفاده کنید.")
 
-        register.password = password_tools.encode_password(register.password)
+        if await connection.site_database.users.find_one({
+                "phone_number": register.phone_number}):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="این شماره تلفن قبلا استفاده شده است .لطفا از شماره دیگری استفاده کنید ")
 
+        register.password = password_tools.encode_password(register.password)
         user_data = register.dict()
         user_data["registration_time"] = datetime.utcnow()
 
