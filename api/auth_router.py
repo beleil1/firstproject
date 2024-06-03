@@ -73,9 +73,21 @@ async def register(register: register_model):
 
 @router.put('/forget_password')
 async def forget_password(forget: forget_password_model):
+
+    user = await connection.site_database.users.find_one({"username": forget.username})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     if forget.password != forget.confirm_password:
-        raise HTTPException(status_code=400, detail="password not match")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
+
     forget.password = password_tools.encode_password(forget.password)
-    await connection.site_database.users.update_one({
-        "username": forget.username}, {"$set": {"password": forget.password}})
-    return "password changed"
+
+    await connection.site_database.users.update_one(
+        {"username": forget.username},
+        {"$set": {"password": forget.password}}
+    )
+
+    return {"detail": "Password changed successfully"}
