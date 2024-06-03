@@ -29,7 +29,8 @@ async def login(login: OAuth2PasswordRequestForm = Depends()):
     access_token = jwt_tools.encode(user_info["username"], "access_token",
                                     expire=10)
 
-    return {"access_token": f"bearer {access_token}"}
+    return {"access_token": access_token}
+    # "token_type": "bearer"} #refresh token comin
     # return user_info["username"]
 
 
