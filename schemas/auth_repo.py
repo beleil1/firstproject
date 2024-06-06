@@ -8,10 +8,14 @@ class authentication:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/authentication/login")
 
     async def find_user(username):
-        return await connection.site_database.users.find_one(
+        user = await connection.site_database.users.find_one(
             {"username": username},
             # dict(login),
-            {"_id": 0})
+            # {"_id": 0}
+        )
+        user["id"] = str(user["_id"])
+        user.pop("_id")
+        return user
 
     def authenticate_token():
         async def _inner(token: str = Depends(authentication.oauth2_scheme)):
