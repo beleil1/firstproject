@@ -27,7 +27,7 @@ async def login(login: OAuth2PasswordRequestForm = Depends()):
             detail="Token is still valid. Cannot issue a new token.")
 
     access_token = jwt_tools.encode(user_info["username"], "access_token",
-                                    expire=10)
+                                    expire=5)
 
     return {"access_token": access_token}
     # "token_type": "bearer"} #refresh token comin
