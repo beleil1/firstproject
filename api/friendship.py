@@ -33,7 +33,6 @@ async def send_friend_request(request: FriendRequest, current_user=Depends(authe
     if not to_user:
         raise HTTPException(status_code=404, detail="To user not found")
 
-    # بررسی آیا این درخواست قبلاً ارسال شده است
     existing_request = await connection.site_database.friend_requests.find_one(
         {"from_user": from_user["_id"], "to_user": to_user["_id"]})
     if existing_request:
@@ -41,7 +40,6 @@ async def send_friend_request(request: FriendRequest, current_user=Depends(authe
             status_code=400,
             detail="You have already sent a friend request to this user.")
 
-    # ارسال درخواست دوستی جدید
     await connection.site_database.friend_requests.insert_one({"from_user": from_user["_id"], "to_user": to_user["_id"]})
 
     return {"detail": "Friend request sent"}
