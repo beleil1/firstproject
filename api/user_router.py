@@ -5,14 +5,26 @@ import imghdr
 from models.model import FileResponse
 from services.minio_setup import upload_file_to_minio
 from datetime import datetime
-
-
+from bson import ObjectId
+from typing import Any, Dict
 router = APIRouter(prefix='/user', tags=["User Api"])
 
 
-@router.post('/me')
+def convert_object_ids(obj: Any) -> Any:
+    if isinstance(obj, list):
+        return [convert_object_ids(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_object_ids(v) for k, v in obj.items()}
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    else:
+        return obj
+
+
+@router.get('/me')
 async def user_info(current_user=Depends(authentication.authenticate_token())):
-    current_user.pop("password")
+    current_user.pop("password", None)  # حذف رمز عبور از دیکشنری
+    current_user = convert_object_ids(current_user)  # تبدیل ObjectId به رشته
     return current_user
 
 
