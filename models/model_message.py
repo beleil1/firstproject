@@ -5,7 +5,7 @@ from bson import ObjectId
 
 
 class FriendRequest(BaseModel):
-    from_user: str
+
     to_user: str
 
 
@@ -16,7 +16,5 @@ class FriendAccept(BaseModel):
 
 
 class Message(BaseModel):
-    sender_id: str
     receiver_id: str
     content: str
-    timestamp: str

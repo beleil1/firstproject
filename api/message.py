@@ -19,17 +19,19 @@ def validate_object_id(id: str):
             status_code=400, detail=f"{id} is not a valid ObjectId")
 
 
-@router.post('/')
+@router.post('/', description="Create and send a new message.")
 async def create_message(message: Message, current_user=Depends(authentication.authenticate_token())):
-    sender_id = validate_object_id(message.sender_id)
     receiver_id = validate_object_id(message.receiver_id)
 
     message_data = {
-        "sender_id": sender_id,
+        # استخراج و اعتبارسنجی ID کاربر جاری
+        "sender_id": validate_object_id(current_user['id']),
         "receiver_id": receiver_id,
         "content": message.content,
-        "timestamp": datetime.now().isoformat()
+        # استفاده از زمان UTC برای استانداردسازی
+        "timestamp": datetime.utcnow().isoformat()
     }
+
     result = await connection.site_database.messages.insert_one(message_data)
     if result.inserted_id:
         return {"message": "Message sent successfully"}
@@ -37,7 +39,7 @@ async def create_message(message: Message, current_user=Depends(authentication.a
         raise HTTPException(status_code=500, detail="Failed to send message")
 
 
-@router.get('/{friend_id}')
+@router.get('/{friend_id}', description="Retrieve messages exchanged with a friend.")
 async def get_messages(friend_id: str, current_user=Depends(authentication.authenticate_token())):
     user_id = validate_object_id(current_user['id'])
     friend_id = validate_object_id(friend_id)
@@ -51,30 +53,10 @@ async def get_messages(friend_id: str, current_user=Depends(authentication.authe
 
     if not messages:
         raise HTTPException(status_code=404, detail="No messages found")
-        messages_jason = json_util.dumps(messages)
-    if not messages:
-        messages_json = []
-    else:
-        messages_json = json_util.dumps(messages)
+
+    messages_json = [{"sender_id": str(msg["sender_id"]),
+                      "receiver_id": str(msg["receiver_id"]),
+                      "content": msg["content"],
+                      "timestamp": msg["timestamp"]} for msg in messages]
 
     return messages_json
-
-
-@router.websocket("/ws/{current_user_id}/{friend_id}")
-async def websocket_endpoint(websocket: WebSocket, current_user_id: str, friend_id: str):
-    await manager.connect_with_friends(current_user_id, friend_id, websocket)
-    try:
-        while True:
-            message = await websocket.receive_text()
-            sender_id = validate_object_id(current_user_id)
-            receiver_id = validate_object_id(friend_id)
-            message_data = {
-                "sender_id": sender_id,
-                "receiver_id": receiver_id,
-                "content": message,
-                "timestamp": datetime.now().isoformat()
-            }
-            await connection.site_database.messages.insert_one(message_data)
-            await manager.send_message_to_friend(current_user_id, friend_id, message)
-    except WebSocketDisconnect:
-        manager.disconnect(current_user_id, friend_id)

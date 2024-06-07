@@ -4,7 +4,6 @@ from api.user_router import router as user_router
 from api.friendship import router as friendship_router
 from services.wbconnection import ConnectionManager
 from fastapi.openapi.utils import get_openapi
-from api.websocket import APIRouter
 from api.websocket import router as websocket_router
 from api.message import router as message
 

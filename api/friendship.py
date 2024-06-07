@@ -4,25 +4,35 @@ from db.mongo import connection
 from schemas.auth_repo import authentication
 from bson import ObjectId
 from datetime import datetime
-from typing import List
-from bson import ObjectId, json_util
+from typing import List, Dict
+from bson import json_util
+import json
+
 router = APIRouter(prefix='/friends', tags=["Friends API"])
 
 
-@router.get('/search_users')
-async def search_users(prefix: str, current_user=Depends(authentication.authenticate_token())) -> List[str]:
-    users_cursor = connection.site_database.users.find(
-        {"username": {"$regex": f"^{prefix}"}})
-    users = await users_cursor.to_list(length=100)
-    usernames = [user["username"] for user in users]
+@router.get('/search_users', description="Search for users by prefix (minimum 3 characters).")
+async def search_users(prefix: str, current_user=Depends(authentication.authenticate_token())) -> List[Dict[str, str]]:
+    if len(prefix) < 3:
+        raise HTTPException(
+            status_code=400, detail="Search term must be at least 3 characters long")
 
-    if not usernames:
+    users_cursor = connection.site_database.users.find(
+        {"username": {"$regex": f"^{prefix}"}},
+        {"_id": 1, "username": 1}
+    )
+
+    users = await users_cursor.to_list(length=100)
+    user_data = [{"id": str(user["_id"]), "username": user["username"]}
+                 for user in users]
+
+    if not user_data:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return usernames
+    return user_data
 
 
-@router.post('/send')
+@router.post('/send', description="Send a friend request to a user by username.")
 async def send_friend_request(request: FriendRequest, current_user=Depends(authentication.authenticate_token())):
     from_user_username = current_user["username"]
     from_user = await connection.site_database.users.find_one({"username": from_user_username})
@@ -45,7 +55,7 @@ async def send_friend_request(request: FriendRequest, current_user=Depends(authe
     return {"detail": "Friend request sent"}
 
 
-@router.get('/friend_requests')
+@router.get('/friend_requests', description="Get the list of friend requests received by the current user.")
 async def get_friend_requests(current_user=Depends(authentication.authenticate_token())):
     user_id = ObjectId(current_user['id'])
 
@@ -64,15 +74,13 @@ async def get_friend_requests(current_user=Depends(authentication.authenticate_t
             }
             friend_requests_with_username.append(request_with_username)
 
-    friend_requests_json = json_util.dumps(friend_requests_with_username)
-
-    if not friend_requests_json:
+    if not friend_requests_with_username:
         raise HTTPException(status_code=404, detail="No friend requests found")
 
-    return friend_requests_json
+    return friend_requests_with_username
 
 
-@router.put('/accept/{request_id}')
+@router.put('/accept/{request_id}', description="Accept or reject a friend request.")
 async def accept_friend_request(request_id: str, status: bool, current_user=Depends(authentication.authenticate_token())):
     friend_request = await connection.site_database.friend_requests.find_one({"_id": ObjectId(request_id)})
     if not friend_request:
@@ -94,7 +102,7 @@ async def accept_friend_request(request_id: str, status: bool, current_user=Depe
     return {"detail": "Friend request status updated", "message": message}
 
 
-@router.get('/friends')
+@router.get('/friends', description="Get the list of friends of the current user.")
 async def get_friends(search_query: str = None, current_user=Depends(authentication.authenticate_token())):
     user = await connection.site_database.users.find_one({"username": current_user["username"]})
     if not user:
@@ -114,11 +122,11 @@ async def get_friends(search_query: str = None, current_user=Depends(authenticat
 
     if not friends:
         raise HTTPException(status_code=404, detail="No friends found")
-    friends_json = json_util.dumps(friends)
-    return friends_json
+
+    return [{"id": str(friend["_id"]), "username": friend["username"]} for friend in friends]
 
 
-@router.delete('/remove/{friend_username}')
+@router.delete('/remove/{friend_username}', description="Remove a friend from your friend list by specifying their username.")
 async def remove_friend(friend_username: str, current_user=Depends(authentication.authenticate_token())):
     user = await connection.site_database.users.find_one({"username": current_user["username"]})
 
@@ -134,5 +142,10 @@ async def remove_friend(friend_username: str, current_user=Depends(authenticatio
         {"_id": user["_id"]},
         {"$pull": {"friends": friend["_id"]}}
     )
-    friends_json = json_util.dumps(friend)
-    return friends_json, {"detail": "Friend removed successfully"}
+
+    removed_friend_info = {
+        "id": str(friend["_id"]),
+        "username": friend["username"]
+    }
+
+    return {"detail": "Friend removed successfully", "friend": removed_friend_info}
