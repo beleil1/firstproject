@@ -24,11 +24,11 @@ async def create_message(message: Message, current_user=Depends(authentication.a
     receiver_id = validate_object_id(message.receiver_id)
 
     message_data = {
-        # استخراج و اعتبارسنجی ID کاربر جاری
+
         "sender_id": validate_object_id(current_user['id']),
         "receiver_id": receiver_id,
         "content": message.content,
-        # استفاده از زمان UTC برای استانداردسازی
+
         "timestamp": datetime.utcnow().isoformat()
     }
 

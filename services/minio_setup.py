@@ -17,7 +17,7 @@ minio_client = Minio(
 
 def upload_file_to_minio(file_data, filename, content_type):
     try:
-        file_data = io.BytesIO(file_data)  # تبدیل bytes به io.BytesIO
+        file_data = io.BytesIO(file_data)
         file_stat = file_data.getbuffer().nbytes
         minio_client.put_object(
             bucket_name=MINIO_BUCKET_NAME,

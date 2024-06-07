@@ -18,8 +18,8 @@ def validate_object_id(id: str):
             status_code=400, detail=f"{id} is not a valid ObjectId")
 
 
-@router.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
+@router.websocket("/ws/{user_id}/{friend_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str, friend_id: str):
     await manager.connect(user_id, websocket)
     try:
         while True:
@@ -27,13 +27,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
             # ذخیره پیام در پایگاه داده
             message_data = {
-                "receiver_id": validate_object_id(user_id),
+                "sender_id": validate_object_id(user_id),
+                "receiver_id": validate_object_id(friend_id),
                 "content": message,
                 "timestamp": datetime.utcnow().isoformat()
             }
             await connection.site_database.messages.insert_one(message_data)
 
-            # ارسال پیام به دوستان
-            await manager.send_message_to_user(user_id, message)
+            # ارسال پیام به هر دو طرف چت
+            await manager.send_message_to_group([user_id, friend_id], f"{user_id}: {message}")
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        manager.disconnect(user_id, websocket)
