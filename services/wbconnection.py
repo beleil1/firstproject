@@ -1,31 +1,30 @@
+# services/wbconnection.py
 
-from typing import Dict, List
+from typing import Dict
 from fastapi import WebSocket, WebSocketDisconnect
 
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.active_connections: Dict[str, WebSocket] = {}
 
-    async def connect_with_friends(self, current_user_id: str, friend_id: str, websocket: WebSocket):
+    async def connect(self, user_id: str, websocket: WebSocket):
         await websocket.accept()
-        # اینجا باید مدیریت اتصال بین دو کاربر انجام شود
-        # مثلاً، به فهرست کانکشن‌های فعال دوستان اضافه شود
-        if current_user_id not in self.active_connections:
-            self.active_connections[current_user_id] = []
-        self.active_connections[current_user_id].append(websocket)
+        self.active_connections[user_id] = websocket
+        print(f"User {user_id} connected")
 
-    async def send_message_to_friend(self, current_user_id: str, friend_id: str, message: str):
-        # ارسال پیام به دوست
-        if friend_id in self.active_connections:
-            for connection in self.active_connections[friend_id]:
-                await connection.send_text(message)
+    def disconnect(self, user_id: str):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+            print(f"User {user_id} disconnected")
 
-    def disconnect(self, current_user_id: str, friend_id: str):
-        # اینجا باید اتصال بین دوستان قطع شود
-        if current_user_id in self.active_connections:
-            self.active_connections[current_user_id] = [
-                conn for conn in self.active_connections[current_user_id] if not conn.client_state
-            ]
-            if not self.active_connections[current_user_id]:
-                del self.active_connections[current_user_id]
+    async def send_message_to_user(self, user_id: str, message: str):
+        if user_id in self.active_connections:
+            websocket = self.active_connections[user_id]
+            await websocket.send_text(message)
+        else:
+            print(f"User {user_id} not connected")
+
+    async def send_message_to_all(self, message: str):
+        for connection in self.active_connections.values():
+            await connection.send_text(message)
