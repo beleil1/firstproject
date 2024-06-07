@@ -13,6 +13,8 @@ class authentication:
             # dict(login),
             # {"_id": 0}
         )
+        if user is None:
+            return None
         user["id"] = str(user["_id"])
         user.pop("_id")
         return user
