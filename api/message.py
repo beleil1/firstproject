@@ -34,7 +34,6 @@ async def create_message(message: Message, current_user=Depends(authentication.a
     receiver_id = validate_object_id(message.receiver_id)
     sender_id = validate_object_id(current_user['id'])
 
-    # ذخیره پیام در دیتابیس MongoDB
     message_data = {
         "sender_id": sender_id,
         "receiver_id": receiver_id,
@@ -42,16 +41,25 @@ async def create_message(message: Message, current_user=Depends(authentication.a
         "timestamp": datetime.utcnow().isoformat()
     }
 
-    result = await connection.site_database.messages.update_one(
-        {"_id": sender_id},
-        {"$push": {"messages": message_data}},
+    conversation = await connection.site_database.messages.find_one({
+        "participants": {"$all": [sender_id, receiver_id]}
+    })
+
+    if not conversation:
+        conversation = {
+            "participants": [sender_id, receiver_id],
+            "messages": []
+        }
+
+    conversation["messages"].append(message_data)
+
+    await connection.site_database.messages.replace_one(
+        {"participants": {"$all": [sender_id, receiver_id]}},
+        conversation,
         upsert=True
     )
 
-    if result.modified_count > 0 or result.upserted_id:
-        return {"message": "Message sent successfully"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to send message")
+    return {"message": "Message sent successfully"}
 
 
 @router.get('/{friend_id}', description="Retrieve messages exchanged with a friend.")
