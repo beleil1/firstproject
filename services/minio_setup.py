@@ -1,4 +1,5 @@
 from minio import Minio
+from fastapi import HTTPException
 from minio.error import S3Error
 import secrets
 import io
@@ -32,3 +33,17 @@ def upload_file_to_minio(file_data, filename, content_type):
     except S3Error as e:
         raise Exception(
             f"An error occurred while uploading the file: {str(e)}")
+
+
+def download_file_from_minio(MINIO_BUCKET_NAME: str, filename: str) -> bytes:
+    try:
+        print(MINIO_BUCKET_NAME, filename)
+        response = minio_client.get_object(MINIO_BUCKET_NAME, filename)
+
+        file_data = response.read()
+        response.close()
+        response.release_conn()
+        return file_data
+    except:
+        raise HTTPException(
+            status_code=404, detail=f"File not found in Minio")
