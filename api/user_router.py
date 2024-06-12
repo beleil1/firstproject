@@ -63,11 +63,17 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(authent
         )
 
 
-@router.get("/download/{file_name}", response_class=Response)
-async def download_file(file_name=str, current_user=Depends(authentication.authenticate_token())):
-    if not file_name:
+@router.get("/download/profile_picture", response_class=Response)
+async def download_profile_picture(current_user=Depends(authentication.authenticate_token())):
+    # بازیابی اطلاعات کاربر از پایگاه داده
+    user_data = await connection.site_database.users.find_one(
+        {"username": current_user["username"]})
+
+    if not user_data or "filename" not in user_data:
         raise HTTPException(
-            status_code=400, detail="File name must be provided.")
+            status_code=404, detail="Profile picture not found.")
+
+    file_name = user_data["filename"]
 
     file_data = download_file_from_minio(bucket_name, filename=file_name)
 
